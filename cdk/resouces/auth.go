@@ -31,7 +31,7 @@ func NewAuth(stack awscdk.Stack, props AuthProps) *Auth {
 		StandardAttributes: &awscognito.StandardAttributes{
 			Email: &awscognito.StandardAttribute{
 				Required: jsii.Bool(true),
-				Mutable:  jsii.Bool(false),
+				Mutable:  jsii.Bool(true),
 			},
 		},
 		DeletionProtection: jsii.Bool(false),
