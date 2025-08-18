@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cdk/resouces"
+	resources "cdk/resouces"
 	"fmt"
 	"log"
 
@@ -47,12 +47,19 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		log.Fatalf("failed to get env: %v", err)
 	}
 
-	auth := resouces.NewAuth(stack, resouces.AuthProps{
+	auth := resources.NewAuth(stack, resources.AuthProps{
 		CognitoDomain:                   env.CognitoDomain,
 		SocialProviderGoogleClientId:    env.SocialProviderGoogleClientId,
 		SocialProviderGoogleSecretValue: env.SocialProviderGoogleSecretValue,
 	})
 	_ = auth
+
+	api := resources.NewHttpApiService(stack, resources.HttpApiServiceProps{})
+	_ = api
+
+	awscdk.NewCfnOutput(stack, jsii.String("APIURL"), &awscdk.CfnOutputProps{
+		Value: api.HttpApi.ApiEndpoint(),
+	})
 
 	return stack
 }

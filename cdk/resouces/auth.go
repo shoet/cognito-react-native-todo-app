@@ -1,4 +1,4 @@
-package resouces
+package resources
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
