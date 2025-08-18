@@ -21,12 +21,12 @@ type Env struct {
 func NewEnv() (*Env, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load dotenv: %v", err)
+		return nil, fmt.Errorf("failed to load dotenv: %v\n", err)
 	}
 
 	var env Env
 	if err := envconfig.Process("", &env); err != nil {
-		return nil, fmt.Errorf("failed to get env: %v", err)
+		return nil, fmt.Errorf("failed to get env: %v\n", err)
 	}
 	return &env, nil
 }
@@ -44,7 +44,7 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 
 	env, err := NewEnv()
 	if err != nil {
-		log.Fatalf("failed to get env: %v", err)
+		log.Fatalf("failed to get env: %v\n", err)
 	}
 
 	auth := resources.NewAuth(stack, resources.AuthProps{
@@ -52,13 +52,19 @@ func NewAppStack(scope constructs.Construct, id string, props *AppStackProps) aw
 		SocialProviderGoogleClientId:    env.SocialProviderGoogleClientId,
 		SocialProviderGoogleSecretValue: env.SocialProviderGoogleSecretValue,
 	})
-	_ = auth
 
-	api := resources.NewHttpApiService(stack, resources.HttpApiServiceProps{})
+	api := resources.NewHttpApiService(stack, resources.HttpApiServiceProps{
+		LambdaEnvironment: &map[string]*string{
+			"COGNITO_USER_POOL_ID": auth.CognitoUserPool.UserPoolId(),
+		},
+	})
 	_ = api
 
 	awscdk.NewCfnOutput(stack, jsii.String("APIURL"), &awscdk.CfnOutputProps{
 		Value: api.HttpApi.ApiEndpoint(),
+	})
+	awscdk.NewCfnOutput(stack, jsii.String("APILogGroupName"), &awscdk.CfnOutputProps{
+		Value: api.LambdaLogGroup.LogGroupName(),
 	})
 
 	return stack
