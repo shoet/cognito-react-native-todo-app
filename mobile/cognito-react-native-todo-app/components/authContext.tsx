@@ -1,6 +1,5 @@
 import { createContext, PropsWithChildren, useContext, useState } from "react";
 import { makeRedirectUri } from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
 import { authWithGoogle, exchangeToken, revokeToken } from "@/libs/authSession";
 
 type AuthContextError = {
@@ -71,7 +70,6 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
       return;
     }
     setAccessToken(tokenResult.data.accessToken);
-    console.log("tokenResult", tokenResult);
   };
 
   const logout = async () => {
@@ -87,8 +85,8 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
           message: "トークンの失効に失敗しました",
         });
       }
-      setAccessToken(undefined);
     }
+    setAccessToken(undefined);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { AuthContextProvider } from "@/components/authContext";
+import { AuthContextProvider, useAuth } from "@/components/authContext";
 import { Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 
@@ -14,7 +14,21 @@ export default function RootLayout() {
       cognitoDomain={cognitoDomain}
       cognitoClientId={cognitoClientId}
     >
-      <Stack />
+      <RootNavigator />
     </AuthContextProvider>
+  );
+}
+
+function RootNavigator() {
+  const { accessToken } = useAuth();
+  return (
+    <Stack>
+      <Stack.Protected guard={accessToken !== undefined}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={accessToken === undefined}>
+        <Stack.Screen name="sign-in" options={{ presentation: "modal" }} />
+      </Stack.Protected>
+    </Stack>
   );
 }
