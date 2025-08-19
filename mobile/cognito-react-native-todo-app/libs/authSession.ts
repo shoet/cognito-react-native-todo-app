@@ -3,10 +3,11 @@ import {
   exchangeCodeAsync,
   TokenResponse,
   revokeAsync,
+  refreshAsync,
 } from "expo-auth-session";
 import { Result } from "@/types";
 
-class AuthError<T> extends Error {
+export class AuthError<T> extends Error {
   detail?: T;
   constructor(message: string, detail?: T) {
     super(message);
@@ -130,4 +131,30 @@ export async function revokeToken(
       result: true,
     },
   };
+}
+
+export async function refreshToken(
+  cognitoClientId: string,
+  refreshToken: string,
+  tokenEndpoint: string,
+): Promise<Result<{ accessToken: string }>> {
+  try {
+    const tokenResponse = await refreshAsync(
+      { clientId: cognitoClientId, refreshToken },
+      {
+        tokenEndpoint,
+      },
+    );
+    return {
+      type: "success",
+      data: {
+        accessToken: tokenResponse.accessToken,
+      },
+    };
+  } catch (e) {
+    return {
+      type: "failure",
+      error: new AuthError("failed to refresh token", e),
+    };
+  }
 }

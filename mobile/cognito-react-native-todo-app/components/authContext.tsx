@@ -1,6 +1,12 @@
 import { createContext, PropsWithChildren, useContext, useState } from "react";
 import { makeRedirectUri } from "expo-auth-session";
-import { authWithGoogle, exchangeToken, revokeToken } from "@/libs/authSession";
+import {
+  authWithGoogle,
+  exchangeToken,
+  revokeToken,
+  refreshToken as refreshAccessToken,
+  AuthError,
+} from "@/libs/authSession";
 
 type AuthContextError = {
   message: string;
@@ -11,12 +17,14 @@ type AuthContextType = {
   accessToken?: string;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  mutateToken: () => Promise<void>;
   error?: AuthContextError;
 };
 
 const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   logout: async () => {},
+  mutateToken: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -70,6 +78,7 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
       return;
     }
     setAccessToken(tokenResult.data.accessToken);
+    setRefreshToken(tokenResult.data.refreshToken);
   };
 
   const logout = async () => {
@@ -84,9 +93,33 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
         setError({
           message: "トークンの失効に失敗しました",
         });
+        return;
       }
     }
     setAccessToken(undefined);
+  };
+
+  const mutateToken = async () => {
+    if (!refreshToken) {
+      console.error("refresh token not found");
+      setError({
+        message: "リフレッシュトークンが見つかりませんでした",
+      });
+      return;
+    }
+    const result = await refreshAccessToken(
+      cognitoClientId,
+      refreshToken,
+      `${cognitoDomain}/oauth2/token`,
+    );
+    if (result.type === "failure") {
+      console.error("failed to refresh token", result.error);
+      setError({
+        message: "トークンの更新に失敗しました",
+      });
+      return;
+    }
+    setAccessToken(result.data.accessToken);
   };
 
   return (
@@ -96,6 +129,7 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
         loginWithGoogle,
         logout,
         error,
+        mutateToken,
       }}
     >
       {children}

@@ -9,7 +9,7 @@ import { UIError } from "@/types";
 WebBrowser.maybeCompleteAuthSession();
 
 export default function HomeScreen() {
-  const { logout, accessToken } = useAuth();
+  const { logout, accessToken, mutateToken } = useAuth();
   const [error, setError] = useState<UIError>();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -83,6 +83,7 @@ export default function HomeScreen() {
       <View>
         <Button title="Logout" onPress={logout} />
         <Button title="APIRequest" onPress={apiRequest} />
+        <Button title="MutateToken" onPress={mutateToken} />
         <Button
           title="APIRequestSecure"
           onPress={() => accessToken && apiRequestSecure(accessToken)}
