@@ -8,10 +8,14 @@ import {
   AuthError,
 } from "@/libs/authSession";
 
-type AuthContextError = {
-  message: string;
-  error?: Error;
-};
+class AuthContextError extends Error {
+  detailError?: Error;
+  constructor(message: string, detailError?: Error) {
+    super(message);
+    this.name = "AuthContextError";
+    this.detailError = detailError;
+  }
+}
 
 type AuthContextType = {
   accessToken?: string;
@@ -43,6 +47,10 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
   const [refreshToken, setRefreshToken] = useState<string>();
   const [error, setError] = useState<AuthContextError>();
 
+  const authorizationEndpoint = `${cognitoDomain}/oauth2/authorize`;
+  const tokenEndpoint = `${cognitoDomain}/oauth2/token`;
+  const revocationEndpoint = `${cognitoDomain}/oauth2/revoke`;
+
   const loginWithGoogle = async () => {
     setError(undefined);
     const redirectUri = makeRedirectUri({
@@ -51,30 +59,29 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
     const authResult = await authWithGoogle(
       cognitoClientId,
       redirectUri,
-      `${cognitoDomain}/oauth2/authorize`,
+      authorizationEndpoint,
       ["openid", "email"],
     );
     if (authResult.type === "failure") {
       console.error("failed to failed to auth with google:", authResult.error);
-      setError({
-        message: "認証に失敗しました",
-        error: authResult.error,
-      });
+      setError(new AuthContextError("認証に失敗しました", authResult.error));
       return;
     }
     const tokenResult = await exchangeToken(
       cognitoClientId,
       redirectUri,
-      `${cognitoDomain}/oauth2/token`,
+      tokenEndpoint,
       authResult.data.code,
       authResult.data.codeVerifier,
     );
     if (tokenResult.type === "failure") {
       console.error("failed to get token", tokenResult.error);
-      setError({
-        message: "認証トークンの取得に失敗しました",
-        error: tokenResult.error,
-      });
+      setError(
+        new AuthContextError(
+          "認証トークンの取得に失敗しました",
+          tokenResult.error,
+        ),
+      );
       return;
     }
     setAccessToken(tokenResult.data.accessToken);
@@ -85,14 +92,12 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
     if (accessToken) {
       const result = await revokeToken(
         cognitoClientId,
-        `${cognitoDomain}/oauth2/revoke`,
+        revocationEndpoint,
         accessToken,
       );
       if (result.type === "failure") {
-        console.error("failed to revoke token");
-        setError({
-          message: "トークンの失効に失敗しました",
-        });
+        console.error("failed to revoke access token");
+        setError(new AuthContextError("アクセストークンの失効に失敗しました"));
         return;
       }
     }
@@ -102,15 +107,18 @@ export const AuthContextProvider = (props: PropsWithChildren<Props>) => {
   const mutateToken = async () => {
     if (!refreshToken) {
       console.error("refresh token not found");
-      setError({
-        message: "リフレッシュトークンが見つかりませんでした",
-      });
+      setError(
+        new AuthContextError(
+          "トークンの更新に失敗しました",
+          accessTokenResult.error,
+        ),
+      );
       return;
     }
     const result = await refreshAccessToken(
       cognitoClientId,
       refreshToken,
-      `${cognitoDomain}/oauth2/token`,
+      tokenEndpoint,
     );
     if (result.type === "failure") {
       console.error("failed to refresh token", result.error);
