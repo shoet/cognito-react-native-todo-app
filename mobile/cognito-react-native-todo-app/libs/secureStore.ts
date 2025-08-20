@@ -1,5 +1,5 @@
 import { Result } from "@/types";
-import { getItemAsync, setItemAsync } from "expo-secure-store";
+import { getItemAsync, setItemAsync, deleteItemAsync } from "expo-secure-store";
 
 const API_REFRESH_TOKEN_KEY = "api.refresh_token";
 
@@ -44,6 +44,22 @@ export class SecureStore {
       return {
         type: "failure",
         error: new Error("failed to save refreshToken to secure store", e),
+      };
+    }
+  }
+
+  async sefeDeleteAPIRefreshToken(): Promise<Result<undefined>> {
+    const key = `${this.appScheme}.${API_REFRESH_TOKEN_KEY}`;
+    try {
+      await deleteItemAsync(key);
+      return {
+        type: "success",
+        data: undefined,
+      };
+    } catch (e: any) {
+      return {
+        type: "failure",
+        error: new Error("failed to delete refreshToken to secure store", e),
       };
     }
   }

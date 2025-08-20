@@ -9,7 +9,7 @@ import { UIError } from "@/types";
 WebBrowser.maybeCompleteAuthSession();
 
 export default function HomeScreen() {
-  const { logout, accessToken, mutateToken } = useAuth();
+  const { logout, mutateToken, getAccessToken } = useAuth();
   const [error, setError] = useState<UIError>();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,19 +43,28 @@ export default function HomeScreen() {
     }
   };
 
-  const apiRequestSecure = async (accessToken: string) => {
+  const apiRequestSecure = async () => {
     setError(undefined);
     setIsLoading(true);
     try {
-      console.log(accessToken);
+      const resultAccessToken = await getAccessToken();
+      if (resultAccessToken.type === "failure") {
+        setError(
+          new UIError("failed to get access token", {
+            displayMessage: "認証に失敗しました",
+          }),
+        );
+        return;
+      }
       const url = getApiUrl("/secure");
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${resultAccessToken.data.accessToken}`,
         },
       });
       if (response.status !== 200) {
+        console.error(response);
         setError(
           new UIError("failed to request", {
             displayMessage: "APIリクエストでエラーが発生しました",
@@ -84,11 +93,7 @@ export default function HomeScreen() {
         <Button title="Logout" onPress={logout} />
         <Button title="APIRequest" onPress={apiRequest} />
         <Button title="MutateToken" onPress={mutateToken} />
-        <Button
-          title="APIRequestSecure"
-          onPress={() => accessToken && apiRequestSecure(accessToken)}
-          disabled={!accessToken}
-        />
+        <Button title="APIRequestSecure" onPress={() => apiRequestSecure()} />
         {isLoading && <Text>loading...</Text>}
         {error?.displayMessage && <Text>{error.displayMessage}</Text>}
       </View>

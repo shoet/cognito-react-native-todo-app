@@ -2,11 +2,18 @@ import { useAuth } from "@/components/authContext";
 import { Button, Text, TextInput, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
-  const { accessToken, loginWithGoogle, logout, error } = useAuth();
+  const { accessToken, loginWithGoogle, logout, error, mutateToken } =
+    useAuth();
+
+  useEffect(() => {
+    mutateToken();
+  }, []);
+
   return (
     <>
       <Stack.Screen name="index" />
